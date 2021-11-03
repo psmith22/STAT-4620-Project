@@ -1,0 +1,15 @@
+---
+title: "STAT 4620 Project EDA"
+author: "Luke Dinan"
+date: "11/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+plot(rnorm(100), rnorm(100))
+```
+
