@@ -13,3 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 plot(rnorm(100), rnorm(100))
 ```
 
+```{r}
+plot(rnorm(1000), rnorm(1000))
+```
+
