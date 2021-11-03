@@ -17,3 +17,7 @@ plot(rnorm(100), rnorm(100))
 plot(rnorm(1000), rnorm(1000))
 ```
 
+```{r}
+plot(rnorm(10000), rnorm(10000))
+```
+
