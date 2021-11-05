@@ -18,6 +18,6 @@ plot(rnorm(1000), rnorm(1000))
 ```
 
 ```{r}
-plot(rnorm(1000,2,2), rnorm(1000,2,10))
+plot(rnorm(1000,2,10), rnorm(1000,2,10))
 ```
 
