@@ -1,0 +1,113 @@
+---
+title: "XGBoost"
+author: "Luke Dinan"
+date: "11/29/2021"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(gbm)
+options(scipen = 999)
+```
+
+
+```{r}
+train <- read.csv("/Users/lukedinan/Documents/STAT 4620/STAT-4620-Project/train.csv", stringsAsFactors = TRUE)
+test <- read.csv("/Users/lukedinan/Documents/STAT 4620/STAT-4620-Project/test.csv", stringsAsFactors = TRUE)
+```
+
+# Arbitrary n.trees and interaction depth
+```{r}
+set.seed(4620)
+boost.fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian", n.trees = 50, interaction.depth = 10)
+```
+
+```{r}
+pred <- predict(boost.fit, test)
+```
+
+# Sum of Squared Error
+```{r}
+rss <- mean((pred - test$SalePrice)^2)
+rss
+```
+
+# Average Prediction Difference
+```{r}
+sqrt(rss)
+```
+
+# Average Prediction is much less than 1 standard deviation off
+```{r}
+mean(train$SalePrice)
+sd(train$SalePrice)
+```
+
+```{r}
+summary(boost.fit, las = 2)
+```
+
+# Loop Over different hyperparameters for interaction depth and shrinkage: smaller numbers for n.trees are used to increase compute time
+
+```{r, message = FALSE}
+results <- data.frame(interaction_depth = numeric(), shrinkage = numeric(), rss = numeric())
+interaction_depth <- seq(from = 1, to = 49, by = 1)
+shrinkage <- seq(from = 0, to = 0.1, by = 0.02)
+count <- 1
+for (i in interaction_depth) {
+  for (j in shrinkage) {
+    fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian", n.trees = 10, interaction.depth = i, shrinkage = j)
+    pred <- predict(fit, test)
+    rss <- mean((pred - test$SalePrice)^2)
+    results[count,] <- c(i, j, rss)
+    count <- count + 1
+  }
+}
+```
+
+```{r}
+row <- results[which.min(results$rss),]
+row
+```
+
+Interaction Depth = 36 and shrinkage = 0.1 are optimal. Now the model is fit using these and a larger number of n.trees.
+
+```{r}
+set.seed(4620)
+best.fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian", n.trees = 1000, interaction.depth = row$interaction_depth[1], shrinkage = row$shrinkage[1])
+```
+
+```{r}
+test$predicted <- predict(best.fit, test)
+```
+
+```{r}
+rss <- mean((test$predicted - test$SalePrice)^2)
+```
+
+Average Prediction is closer than before.
+```{r}
+sqrt(rss)
+```
+
+Overall Predictions look pretty good
+```{r}
+plot(test$SalePrice, test$predicted, pch = 16, xlab = "Actual Sale Price", ylab = "Predicted Sale Price", col = "red")
+```
+
+
+The most important predictors are Overall Quality, Garage Liv Area, Neighborhood, Bsmt SF, 1st Floor Sqft, and Kitchen Quality.
+```{r}
+summary(best.fit)
+```
+
+Overall, these variables appear to be relatively highly correlated. In general, they appear to capture "nice" houses, which makes sense.
+```{r}
+cor(select(train, Overall.Qual, Gr.Liv.Area, Total.Bsmt.SF, X1st.Flr.SF, BsmtFin.SF.1))
+```
+
+
+
+
