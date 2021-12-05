@@ -1,0 +1,335 @@
+---
+title: "STAT 4260 Project Random Forreest"
+author: "Patrick Smith"
+date: "12/1/2021"
+output: html_document
+---
+
+```{r, message = FALSE}
+# install and import libraries
+
+#install.packages("tidyverse")
+library(tidyverse)
+
+#install.packages("readr")
+library(readr)
+
+#install.packages("randomForest")
+library(randomForest)
+```
+
+```{r}
+# avoid scientific notation
+options(scipen = 999)
+
+# load data
+load("ames.Rdata")
+```
+
+```{r, results = FALSE}
+# use Luke's data cleaning and processing script
+train$Alley <- ifelse(is.na(train$Alley), "None", train$Alley)
+train$Fireplace.Qu <- ifelse(is.na(train$Fireplace.Qu), "None", train$Fireplace.Qu)
+train$Bsmt.Qual <- ifelse(is.na(train$Bsmt.Qual), "No Basement", train$Bsmt.Qual)
+train$Bsmt.Cond <- ifelse(is.na(train$Bsmt.Cond), "No Basement", train$Bsmt.Cond)
+train$Bsmt.Exposure <- ifelse(is.na(train$Bsmt.Exposure), "No Basement", train$Bsmt.Exposure)
+train$BsmtFin.Type.1 <- ifelse(is.na(train$BsmtFin.Type.1), "No Basement", train$BsmtFin.Type.1)
+train$BsmtFin.Type.2 <- ifelse(is.na(train$BsmtFin.Type.2), "No Basement", train$BsmtFin.Type.2)
+train$Pool.QC <- ifelse(is.na(train$Pool.QC), "No Pool", train$Pool.QC)
+train$Garage.Type <- ifelse(is.na(train$Garage.Type), "No Garage", train$Garage.Type)
+train$Garage.Finish <- ifelse(is.na(train$Garage.Finish), "No Garage", train$Garage.Finish)
+train$Garage.Qual <- ifelse(is.na(train$Garage.Qual), "No Garage", train$Garage.Qual)
+train$Garage.Cond <- ifelse(is.na(train$Garage.Cond), "No Garage", train$Garage.Cond)
+train$Fence <- ifelse(is.na(train$Fence), "No Fence", train$Fence)
+train$Misc.Feature <- ifelse(is.na(train$Misc.Feature), "None", train$Misc.Feature)
+
+test$Alley <- ifelse(is.na(test$Alley), "None", test$Alley)
+test$Fireplace.Qu <- ifelse(is.na(test$Fireplace.Qu), "None", test$Fireplace.Qu)
+test$Bsmt.Qual <- ifelse(is.na(test$Bsmt.Qual), "No Basement", test$Bsmt.Qual)
+test$Bsmt.Cond <- ifelse(is.na(test$Bsmt.Cond), "No Basement", test$Bsmt.Cond)
+test$Bsmt.Exposure <- ifelse(is.na(test$Bsmt.Exposure), "No Basement", test$Bsmt.Exposure)
+test$BsmtFin.Type.1 <- ifelse(is.na(test$BsmtFin.Type.1), "No Basement", test$BsmtFin.Type.1)
+test$BsmtFin.Type.2 <- ifelse(is.na(test$BsmtFin.Type.2), "No Basement", test$BsmtFin.Type.2)
+test$Pool.QC <- ifelse(is.na(test$Pool.QC), "No Pool", test$Pool.QC)
+test$Garage.Type <- ifelse(is.na(test$Garage.Type), "No Garage", test$Garage.Type)
+test$Garage.Finish <- ifelse(is.na(test$Garage.Finish), "No Garage", test$Garage.Finish)
+test$Garage.Qual <- ifelse(is.na(test$Garage.Qual), "No Garage", test$Garage.Qual)
+test$Garage.Cond <- ifelse(is.na(test$Garage.Cond), "No Garage", test$Garage.Cond)
+test$Fence <- ifelse(is.na(test$Fence), "No Fence", test$Fence)
+test$Misc.Feature <- ifelse(is.na(test$Misc.Feature), "None", test$Misc.Feature)
+
+train$Lot.Frontage[is.na(train$Lot.Frontage)]<-as.integer(median(train$Lot.Frontage,na.rm=TRUE))
+train$Garage.Yr.Blt[is.na(train$Garage.Yr.Blt)]<-as.integer(median(train$Garage.Yr.Blt,na.rm=TRUE))
+train$Mas.Vnr.Area[is.na(train$Mas.Vnr.Area)]<-as.integer(median(train$Mas.Vnr.Area,na.rm=TRUE))
+train$Bsmt.Full.Bath[is.na(train$Bsmt.Full.Bath)]<-as.integer(median(train$Bsmt.Full.Bath,na.rm=TRUE))
+train$Bsmt.Half.Bath[is.na(train$Bsmt.Half.Bath)]<-as.integer(median(train$Bsmt.Half.Bath,na.rm=TRUE))
+train$BsmtFin.SF.1[is.na(train$BsmtFin.SF.1)]<-as.integer(median(train$BsmtFin.SF.1,na.rm=TRUE))
+train$BsmtFin.SF.2[is.na(train$BsmtFin.SF.2)]<-as.integer(median(train$BsmtFin.SF.2,na.rm=TRUE))
+train$Bsmt.Unf.SF[is.na(train$Bsmt.Unf.SF)]<-as.integer(median(train$Bsmt.Unf.SF,na.rm=TRUE))
+train$Total.Bsmt.SF[is.na(train$Total.Bsmt.SF)]<-as.integer(median(train$Total.Bsmt.SF,na.rm=TRUE))
+train$Garage.Cars[is.na(train$Garage.Cars)]<-as.integer(median(train$Garage.Cars,na.rm=TRUE))
+train$Garage.Area[is.na(train$Garage.Area)]<-as.integer(median(train$Garage.Area,na.rm=TRUE))
+test$Lot.Frontage[is.na(test$Lot.Frontage)]<-as.integer(median(test$Lot.Frontage,na.rm=TRUE))
+test$Garage.Yr.Blt[is.na(test$Garage.Yr.Blt)]<-as.integer(median(test$Garage.Yr.Blt,na.rm=TRUE))
+test$Mas.Vnr.Area[is.na(test$Mas.Vnr.Area)]<-as.integer(median(test$Mas.Vnr.Area,na.rm=TRUE))
+sapply(test, class)
+sapply(train, class)
+test$Bsmt.Full.Bath[is.na(test$Bsmt.Full.Bath)]<-as.integer(median(test$Bsmt.Full.Bath,na.rm=TRUE))
+test$Bsmt.Half.Bath[is.na(test$Bsmt.Half.Bath)]<-as.integer(median(test$Bsmt.Half.Bath,na.rm=TRUE))
+test$BsmtFin.SF.1[is.na(test$BsmtFin.SF.1)]<-as.integer(median(test$BsmtFin.SF.1,na.rm=TRUE))
+test$BsmtFin.SF.2[is.na(test$BsmtFin.SF.2)]<-as.integer(median(test$BsmtFin.SF.2,na.rm=TRUE))
+test$Bsmt.Unf.SF[is.na(test$Bsmt.Unf.SF)]<-as.integer(median(test$Bsmt.Unf.SF,na.rm=TRUE))
+test$Total.Bsmt.SF[is.na(test$Total.Bsmt.SF)]<-as.integer(median(test$Total.Bsmt.SF,na.rm=TRUE))
+test$Garage.Cars[is.na(test$Garage.Cars)]<-as.integer(median(test$Garage.Cars,na.rm=TRUE))
+test$Garage.Area[is.na(test$Garage.Area)]<-as.integer(median(test$Garage.Area,na.rm=TRUE))
+
+train$MS.SubClass <- as.factor(train$MS.SubClass)
+test$MS.SubClass <- as.factor(test$MS.SubClass)
+train$MS.Zoning <- ifelse(train$MS.Zoning %in% c("A (agr)", "C (all)", "I (all)", "RH", "RM"), "other", train$MS.Zoning)
+test$MS.Zoning <- ifelse(test$MS.Zoning %in% c("A (agr)", "C (all)", "I (all)", "RH", "RM"), "other", test$MS.Zoning)
+
+train$Has.Alley <- as.factor(ifelse(train$Alley == "None", 0, 1))
+test$Has.Alley <- as.factor(ifelse(test$Alley == "None", 0, 1))
+
+train <- select(train, -Alley)
+test <- select(test, -Alley)
+train$Lot.Shape <- case_when(train$Lot.Shape == "Reg" ~ 0,
+                             train$Lot.Shape == "IR1" ~ 1,
+                             train$Lot.Shape == "IR2" ~ 2,
+                             train$Lot.Shape == "IR3" ~ 3)
+test$Lot.Shape <- case_when(test$Lot.Shape == "Reg" ~ 0,
+                             test$Lot.Shape == "IR1" ~ 1,
+                             test$Lot.Shape == "IR2" ~ 2,
+                             test$Lot.Shape == "IR3" ~ 3)
+train$Lot.Config <- ifelse(train$Lot.Config == "Inside", "Inside", "other")
+test$Lot.Config <- ifelse(test$Lot.Config == "Inside", "Inside", "other")
+train$Land.Slope <- case_when(train$Land.Slope == "Gtl" ~ 0,
+                              train$Land.Slope == "Mod" ~ 1,
+                              train$Land.Slope == "Sev" ~ 2)
+test$Land.Slope <- case_when(test$Land.Slope == "Gtl" ~ 0,
+                              test$Land.Slope == "Mod" ~ 1,
+                              test$Land.Slope == "Sev" ~ 2)
+train$Condition.1 <- ifelse(train$Condition.1 == "Norm", "norm", "other")
+test$Condition.1 <- ifelse(test$Condition.1 == "Norm", "norm", "other")
+train$Condition.2 <- as.factor(ifelse(train$Condition.2 == "Norm", "norm", "other"))
+test$Condition.2 <- as.factor(ifelse(test$Condition.2 == "Norm", "norm", "other"))
+train$Roof.Style <- ifelse(train$Roof.Style %in% c("Flat", "Gambrel", "Mansard", "Shed"), "other", train$Roof.Style)
+test$Roof.Style <- ifelse(test$Roof.Style %in% c("Flat", "Gambrel", "Mansard", "Shed"), "other", train$Roof.Style)
+train$Roof.Matl <- ifelse(train$Roof.Matl == "CompShg", "CompShg", "other")
+test$Roof.Matl <- ifelse(test$Roof.Matl == "CompShg", "CompShg", "other")
+train$Exterior.1st <- ifelse(train$Exterior.1st %in% c("VinylSd", "HdBoard", "Plywood"), train$Exterior.1st, "other")
+test$Exterior.1st <- ifelse(test$Exterior.1st %in% c("VinylSd", "HdBoard", "Plywood"), test$Exterior.1st, "other")
+train$Exterior.2nd <- ifelse(train$Exterior.2nd %in% c("CmentBd", "HdBoard", "MetalSd", "Plywood", "VinylSd", "Wd Sdng"), train$Exterior.2nd, "other")
+test$Exterior.2nd <- ifelse(test$Exterior.2nd %in% c("CmentBd", "HdBoard", "MetalSd", "Plywood", "VinylSd", "Wd Sdng"), test$Exterior.2nd, "other")
+train$Mas.Vnr.Type <- ifelse(train$Mas.Vnr.Type %in% c("BrkFace", "None"), train$Mas.Vnr.Type, "other")
+test$Mas.Vnr.Type <- ifelse(test$Mas.Vnr.Type %in% c("BrkFace", "None"), test$Mas.Vnr.Type, "other")
+train$Exter.Qual <- case_when(train$Exter.Qual == "Ex" ~ 4,
+                              train$Exter.Qual == "Gd" ~ 3,
+                              train$Exter.Qual == "TA" ~ 2,
+                              train$Exter.Qual == "Fa" ~ 1,
+                              train$Exter.Qual == "Po" ~ 0)
+test$Exter.Qual <- case_when(test$Exter.Qual == "Ex" ~ 4,
+                              test$Exter.Qual == "Gd" ~ 3,
+                              test$Exter.Qual == "TA" ~ 2,
+                              test$Exter.Qual == "Fa" ~ 1,
+                              test$Exter.Qual == "Po" ~ 0)
+train$Foundation <- ifelse(train$Foundation %in% c("BrkTil", "CBlock", "PConc"), train$Foundation, "other")
+test$Foundation <- ifelse(test$Foundation %in% c("BrkTil", "CBlock", "PConc"), test$Foundation, "other")
+train$Has.Basement <- ifelse(train$Bsmt.Qual == "No Basement", 0, 1)
+test$Has.Basement <- ifelse(test$Bsmt.Qual == "No Basement", 0, 1)
+train$Bsmt.Qual <- ifelse(train$Bsmt.Qual == "", "No Basement", train$Bsmt.Qual)
+test$Bsmt.Qual <- ifelse(test$Bsmt.Qual == "", "No Basement", test$Bsmt.Qual)
+train$Bsmt.Qual <- case_when(train$Bsmt.Qual == "Ex" ~ 5,
+                             train$Bsmt.Qual == "Gd" ~ 4,
+                             train$Bsmt.Qual == "TA" ~ 3,
+                             train$Bsmt.Qual == "Fa" ~ 2,
+                             train$Bsmt.Qual == "Po" ~ 1,
+                             train$Bsmt.Qual == "No Basement" ~ 0)
+test$Bsmt.Qual <- case_when(test$Bsmt.Qual == "Ex" ~ 5,
+                             test$Bsmt.Qual == "Gd" ~ 4,
+                             test$Bsmt.Qual == "TA" ~ 3,
+                             test$Bsmt.Qual == "Fa" ~ 2,
+                             test$Bsmt.Qual == "Po" ~ 1,
+                             test$Bsmt.Qual == "No Basement" ~ 0)
+train$Bsmt.Cond <- ifelse(train$Bsmt.Cond == "", "No Basement", train$Bsmt.Cond)
+test$Bsmt.Cond <- ifelse(test$Bsmt.Cond == "", "No Basement", test$Bsmt.Cond)
+train$Bsmt.Cond <- case_when(train$Bsmt.Cond == "Ex" ~ 5,
+                             train$Bsmt.Cond == "Gd" ~ 4,
+                             train$Bsmt.Cond == "TA" ~ 3,
+                             train$Bsmt.Cond == "Fa" ~ 2,
+                             train$Bsmt.Cond == "Po" ~ 1,
+                             train$Bsmt.Cond == "No Basement" ~ 0)
+test$Bsmt.Cond <- case_when(test$Bsmt.Cond == "Ex" ~ 5,
+                             test$Bsmt.Cond == "Gd" ~ 4,
+                             test$Bsmt.Cond == "TA" ~ 3,
+                             test$Bsmt.Cond == "Fa" ~ 2,
+                             test$Bsmt.Cond == "Po" ~ 1,
+                             test$Bsmt.Cond == "No Basement" ~ 0)
+train$Bsmt.Exposure <- ifelse(train$Bsmt.Exposure == "", "No Basement", train$Bsmt.Exposure)
+test$Bsmt.Exposure <- ifelse(test$Bsmt.Exposure == "", "No Basement", test$Bsmt.Exposure)
+train$Bsmt.Exposure <- case_when(train$Bsmt.Exposure == "Gd" ~ 4,
+                                 train$Bsmt.Exposure == "Av" ~ 3,
+                                 train$Bsmt.Exposure == "Mn" ~ 2,
+                                 train$Bsmt.Exposure == "No" ~ 1,
+                                 train$Bsmt.Exposure == "No Basement" ~ 0)
+test$Bsmt.Exposure <- case_when(test$Bsmt.Exposure == "Gd" ~ 4,
+                                 test$Bsmt.Exposure == "Av" ~ 3,
+                                 test$Bsmt.Exposure == "Mn" ~ 2,
+                                 test$Bsmt.Exposure == "No" ~ 1,
+                                 test$Bsmt.Exposure == "No Basement" ~ 0)
+train$BsmtFin.Type.2 <- ifelse(train$BsmtFin.Type.2 == "Unf", "Unf", "other")
+test$BsmtFin.Type.2 <- ifelse(test$BsmtFin.Type.2 == "Unf", "Unf", "other")
+train$Heating <- ifelse(train$Heating == "GasA", "GasA", "other")
+test$Heating <- ifelse(test$Heating == "GasA", "GasA", "other")
+train$Heating.QC <- case_when(train$Heating.QC == "Ex" ~ 4,
+                              train$Heating.QC == "Gd" ~ 3,
+                              train$Heating.QC == "TA" ~ 2,
+                              train$Heating.QC == "Fa" ~ 1,
+                              train$Heating.QC == "Po" ~ 0)
+test$Heating.QC <- case_when(test$Heating.QC == "Ex" ~ 4,
+                              test$Heating.QC == "Gd" ~ 3,
+                              test$Heating.QC == "TA" ~ 2,
+                              test$Heating.QC == "Fa" ~ 1,
+                              test$Heating.QC == "Po" ~ 0)
+train$Electrical <- ifelse(train$Electrical == "SBrkr", "SBrkr", "other")
+test$Electrical <- ifelse(test$Electrical == "SBrkr", "SBrkr", "other")
+train$Kitchen.Qual <- case_when(train$Kitchen.Qual == "Ex" ~ 4,
+                                train$Kitchen.Qual == "Gd" ~ 3,
+                                train$Kitchen.Qual == "TA" ~ 2,
+                                train$Kitchen.Qual == "Fa" ~ 1,
+                                train$Kitchen.Qual == "Po" ~ 0)
+test$Kitchen.Qual <- case_when(test$Kitchen.Qual == "Ex" ~ 4,
+                                test$Kitchen.Qual == "Gd" ~ 3,
+                                test$Kitchen.Qual == "TA" ~ 2,
+                                test$Kitchen.Qual == "Fa" ~ 1,
+                                test$Kitchen.Qual == "Po" ~ 0)
+train$Functional <- ifelse(train$Functional == "Typ", "Typ", "BelowTyp")
+test$Functional <- ifelse(test$Functional == "Typ", "Typ", "BelowTyp")
+train$Has.Fireplace <- ifelse(train$Fireplace.Qu == "None", 1, 0)
+test$Has.Fireplace <- ifelse(test$Fireplace.Qu == "None", 1, 0)
+train$Fireplace.Qu <- case_when(train$Fireplace.Qu == "Ex" ~ 5,
+                                train$Fireplace.Qu == "Gd" ~ 4,
+                                train$Fireplace.Qu == "TA" ~ 3,
+                                train$Fireplace.Qu == "Fa" ~ 2,
+                                train$Fireplace.Qu == "Po" ~ 1,
+                                train$Fireplace.Qu == "None" ~ 0)
+test$Fireplace.Qu <- case_when(test$Fireplace.Qu == "Ex" ~ 5,
+                                test$Fireplace.Qu == "Gd" ~ 4,
+                                test$Fireplace.Qu == "TA" ~ 3,
+                                test$Fireplace.Qu == "Fa" ~ 2,
+                                test$Fireplace.Qu == "Po" ~ 1,
+                                test$Fireplace.Qu == "None" ~ 0)
+train$Has.Garage <- ifelse(train$Garage.Type == "No Garage", 1, 0)
+test$Has.Garage <- ifelse(test$Garage.Type == "No Garage", 1, 0)
+train$Garage.Finish <- ifelse(train$Garage.Finish == "", "No Garage", train$Garage.Finish)
+test$Garage.Finish <- ifelse(test$Garage.Finish == "", "No Garage", test$Garage.Finish)
+train$Garage.Finish <- case_when(train$Garage.Finish == "Fin" ~ 3,
+                                 train$Garage.Finish == "RFn" ~ 2,
+                                 train$Garage.Finish == "Unf" ~ 1,
+                                 train$Garage.Finish == "No Garage" ~ 0)
+test$Garage.Finish <- case_when(test$Garage.Finish == "Fin" ~ 3,
+                                 test$Garage.Finish == "RFn" ~ 2,
+                                 test$Garage.Finish == "Unf" ~ 1,
+                                 test$Garage.Finish == "No Garage" ~ 0)
+train$Garage.Qual <- ifelse(train$Garage.Qual == "", "No Garage", train$Garage.Qual)
+test$Garage.Qual <- ifelse(test$Garage.Qual == "", "No Garage", test$Garage.Qual)
+train$Garage.Qual <- case_when(train$Garage.Qual == "Ex" ~ 5,
+                               train$Garage.Qual == "Gd" ~ 4,
+                               train$Garage.Qual == "TA" ~ 3,
+                               train$Garage.Qual == "Fa" ~ 2,
+                               train$Garage.Qual == "Po" ~ 1,
+                               train$Garage.Qual == "No Garage" ~ 0)
+test$Garage.Qual <- case_when(test$Garage.Qual == "Ex" ~ 5,
+                               test$Garage.Qual == "Gd" ~ 4,
+                               test$Garage.Qual == "TA" ~ 3,
+                               test$Garage.Qual == "Fa" ~ 2,
+                               test$Garage.Qual == "Po" ~ 1,
+                               test$Garage.Qual == "No Garage" ~ 0)
+train$Paved.Drive <- ifelse(train$Paved.Drive == "Y", "Paved", "Unpaved")
+test$Paved.Drive <- ifelse(test$Paved.Drive == "Y", "Paved", "Unpaved")
+train$Has.Pool <- ifelse(train$Pool.QC == "No Pool", 0, 1)
+test$Has.Pool <- ifelse(test$Pool.QC == "No Pool", 0, 1)
+train <- select(train, -Pool.QC, -Pool.Area)
+test <- select(test, -Pool.QC, -Pool.Area)
+train$Fence <- case_when(train$Fence == "GdPrv" ~ 4,
+                         train$Fence == "MnPrv" ~ 3,
+                         train$Fence == "GdWo" ~ 2,
+                         train$Fence == "MnWw" ~ 1,
+                         train$Fence == "No Fence" ~ 0)
+test$Fence <- case_when(test$Fence == "GdPrv" ~ 4,
+                         test$Fence == "MnPrv" ~ 3,
+                         test$Fence == "GdWo" ~ 2,
+                         test$Fence == "MnWw" ~ 1,
+                         test$Fence == "No Fence" ~ 0)
+train$Misc.Feature <- ifelse(train$Misc.Feature == "None", 0, 1)
+test$Misc.Feature <- ifelse(test$Misc.Feature == "None", 0, 1)
+train$Sale.Type <- ifelse(train$Sale.Type %in% c("New", "WD "), train$Sale.Type, "other")
+test$Sale.Type <- ifelse(test$Sale.Type %in% c("New", "WD "), test$Sale.Type, "other")
+train <- train[train$Gr.Liv.Area < 4000,]
+train <- train %>% select(-Utilities)
+test <- test %>% select(-Utilities)
+length(train$Wood.Deck.SF[train$Wood.Deck.SF == 0])
+train$Has.Wood.Deck <- ifelse(train$Wood.Deck.SF == 0, 0, 1)
+test$Has.Wood.Deck <- ifelse(test$Wood.Deck.SF == 0, 0, 1)
+length(train$Open.Porch.SF[train$Open.Porch.SF == 0])
+train$Has.Open.Porch <- ifelse(train$Open.Porch.SF == 0, 0, 1)
+test$Has.Open.Porch <- ifelse(test$Open.Porch.SF == 0, 0, 1)
+length(train$Enclosed.Porch[train$Enclosed.Porch == 0])
+train$Has.Enclosed.Porch <- ifelse(train$Enclosed.Porch == 0, 0, 1)
+test$Has.Enclosed.Porch <- ifelse(test$Enclosed.Porch == 0, 0, 1)
+length(train$X3Ssn.Porch[train$X3Ssn.Porch == 0])
+train$Has.X3Ssn.Porch <- ifelse(train$X3Ssn.Porch == 0 , 0, 1)
+test$Has.X3Ssn.Porch <- ifelse(test$X3Ssn.Porch == 0 , 0, 1)
+length(train$Screen.Porch[train$Screen.Porch == 0])
+train$Has.Screen.Porch <- ifelse(train$Screen.Porch == 0, 0, 1)
+test$Has.Screen.Porch <- ifelse(test$Screen.Porch == 0, 0, 1)
+train <- train %>% select(-Wood.Deck.SF, -Open.Porch.SF, -Enclosed.Porch, -X3Ssn.Porch, -Screen.Porch)
+test <- test %>% select(-Wood.Deck.SF, -Open.Porch.SF, -Enclosed.Porch, -X3Ssn.Porch, -Screen.Porch)
+```
+
+```{r}
+# equalize classes of train and test
+test <- rbind(train[1,], test)
+test <- test[-1,]
+
+# use cv to determine optimal mtry value
+set.seed(1)
+ctrl <- trainControl(method = 'cv', 
+                           number = 5,
+                           search = 'random',
+                           savePredictions = T)
+
+rf.mod <- train(SalePrice~., data = train, methond = 'rf', trControl = ctrl, 
+                    tuneLength = 10, ntree = 500)
+
+print(rf.mod)
+plot(rf.mod)
+```
+
+```{r}
+# set seed to reproduce output
+set.seed(1)
+
+# train Random Forest
+# use mtry=48 for regression tree
+rf.ames = randomForest(SalePrice ~ ., data = train, mtry = 48, importance = TRUE)
+rf.pred = predict(rf.ames, newdata = test)
+
+# determine mse and rss
+residuals <- test$SalePrice-rf.pred
+
+test_mse <- mean((residuals)^2)
+test_mse
+
+rss <- sum((residuals)^2)
+rss
+
+plot(rf.pred, residuals)
+
+# look at what variables are important
+importance <- importance(rf.ames)
+
+par(mfrow=c(1,2))
+dotchart(sort(importance[0:15,1]), main="%IncMSE")
+dotchart(sort(importance[0:15,2]), main="IncNodePurity")
+```
